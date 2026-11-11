@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鹈鹕骑自行车</title>
+<meta name="description" content="一只白鹈鹕沿着海边木栈道骑自行车。">
+<style>
+  :root {
+    --ink: #1c2e38;
+    --paper: rgba(255, 249, 240, 0.9);
+    --line: rgba(70, 46, 28, 0.14);
+    --title: #17324a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #6eb6de;
+    color: var(--ink);
+    font-family: Palatino, "Palatino Linotype", "WenQuanYi Micro Hei", "PingFang SC", "Noto Sans SC", sans-serif;
+  }
+  body {
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    height: 100%;
+  }
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .title {
+    position: absolute;
+    top: 22px;
+    left: 26px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  h1 {
+    margin: 0;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--title);
+    line-height: 1.15;
+  }
+  .sub {
+    margin: 6px 0 0;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--title);
+    opacity: 0.78;
+  }
+  .hud {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 18px;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: stretch;
+    justify-content: space-between;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(8px);
+  }
+  .speed {
+    flex: 1 1 280px;
+    min-width: 240px;
+  }
+  .speed label {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .speed input[type="range"] {
+    flex: 1;
+    accent-color: #1f7a6b;
+    min-width: 80px;
+  }
+  .mood {
+    font-size: 14px;
+    min-width: 4.5em;
+    text-align: right;
+  }
+  .meters {
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    min-width: 7em;
+  }
+  button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fffdf9;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  button:hover { background: #fff6ea; }
+  button[aria-pressed="true"] {
+    background: #1f7a6b;
+    color: #f6fffc;
+    border-color: #1f7a6b;
+  }
+  button:focus-visible, input:focus-visible {
+    outline: 2px solid #1f7a6b;
+    outline-offset: 2px;
+  }
+  .days { padding: 6px; gap: 4px; }
+  .hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--title);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+  @media (max-width: 720px) {
+    h1 { font-size: 24px; }
+    .hint { font-size: 11px; }
+    .title { left: 16px; top: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hud { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <svg id="scene" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="sceneTitle sceneDesc">
+    <title id="sceneTitle">鹈鹕骑自行车</title>
+    <desc id="sceneDesc">一只白鹈鹕在海边木栈道上骑自行车，双脚踩着踏板，轮子向前转，翅膀偶尔扇动保持平衡。海浪、云和海鸥从身边掠过。</desc>
+  </svg>
+  <header class="title">
+    <h1>鹈鹕骑自行车</h1>
+    <p class="sub">海边木栈道，一直骑下去</p>
+    <p class="hint">方向键调速度 · 空格暂停 · B 键按铃</p>
+  </header>
+  <div class="hud">
+    <div class="card speed">
+      <label for="speed">速度</label>
+      <input id="speed" type="range" min="0" max="2.4" step="0.01" value="1" aria-label="骑行速度">
+      <span class="mood" id="mood">轻松巡航</span>
+    </div>
+    <div class="card">
+      <span class="meters" id="meters">已骑行 0 米</span>
+      <button type="button" id="pause">暂停</button>
+      <button type="button" id="bell">按铃</button>
+    </div>
+    <div class="card days" role="group" aria-label="时辰">
+      <button type="button" data-time="morning">清晨</button>
+      <button type="button" data-time="afternoon" aria-pressed="true">午后</button>
+      <button type="button" data-time="dusk">黄昏</button>
+    </div>
+  </div>
+  <p class="sr-only" id="live" aria-live="polite"></p>
+</div>
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("scene");
+  const W = 1280;
+  const H = 720;
+  const DECK_Y = 548;
+  const R = 50;
+
+  const PALETTES = {
+    morning: {
+      skyTop: "#b9e2f4", skyMid: "#f7e3c6", skyLow: "#fdecd4",
+      sun: "#ffe7a3", sunCore: "#fff6d6",
+      hillFar: "#a9c4bc", hillNear: "#d2c09a",
+      seaFar: "#8ec4d2", sea: "#4e9bb4", seaDeep: "#21748c", foam: "#e9f7f6",
+      deck: "#e4c088", deckEdge: "#c99a5c", seam: "#b48448",
+      post: "#7d5536", piling: "#73502f", pilingWet: "#4a3320", rope: "#f8f3e8",
+      cloud: "#fffdf9", cloudOpacity: 0.96, star: 0,
+      sunX: 250, sunY: 168, sunR: 56, title: "#17324a", page: "#b9e2f4"
+    },
+    afternoon: {
+      skyTop: "#6eb6de", skyMid: "#f2c48a", skyLow: "#f8d7a4",
+      sun: "#ffd15a", sunCore: "#fff1b8",
+      hillFar: "#7f9aa6", hillNear: "#d2b48c",
+      seaFar: "#5aa4b8", sea: "#1f7f99", seaDeep: "#14556e", foam: "#d5f2f3",
+      deck: "#d7a86a", deckEdge: "#b8884e", seam: "#a67842",
+      post: "#6b442c", piling: "#624028", pilingWet: "#3d291b", rope: "#f4ecdf",
+      cloud: "#fffaf3", cloudOpacity: 0.94, star: 0,
+      sunX: 1030, sunY: 112, sunR: 50, title: "#17324a", page: "#6eb6de"
+    },
+    dusk: {
+      skyTop: "#24345e", skyMid: "#c85b4a", skyLow: "#f0a36c",
+      sun: "#ffb14a", sunCore: "#ffd7a0",
+      hillFar: "#3c4d66", hillNear: "#6e5344",
+      seaFar: "#35586c", sea: "#163e52", seaDeep: "#0c2836", foam: "#9ec0c8",
+      deck: "#8d6844", deckEdge: "#6e4e32", seam: "#5c4028",
+      post: "#3e2a1e", piling: "#3a281c", pilingWet: "#24180f", rope: "#e7d8c4",
+      cloud: "#f0c4b2", cloudOpacity: 0.38, star: 0.9,
+      sunX: 700, sunY: 246, sunR: 64, title: "#fff6ec", page: "#24345e"
+    }
+  };
+
+  const BIKE = {
+    rear: { x: -122, y: -R },
+    front: { x: 136, y: -R },
+    bb: { x: -8, y: -46 },
+    seat: { x: -50, y: -146 },
+    head: { x: 92, y: -138 },
+    grip: { x: 118, y: -158 }
+  };
+  const BIRD = {
+    body: { x: -16, y: -172 },
+    neckFrom: { x: -4, y: -188 },
+    head: { x: 62, y: -258 },
+    hipN: { x: -34, y: -140 },
+    hipF: { x: -46, y: -142 },
+    shoulder: { x: -22, y: -180 }
+  };
+  const L1 = 74;
+  const L2 = 72;
+  const CRANK = 26;
+
+  function el(name, attrs, parent) {
+    const node = document.createElementNS(NS, name);
+    for (const key in attrs) node.setAttribute(key, attrs[key]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  const defs = el("defs", {}, svg);
+  const skyGrad = el("linearGradient", { id: "skyGrad", x1: "0", y1: "0", x2: "0", y2: "1" }, defs);
+  const skyTop = el("stop", { offset: "0%" }, skyGrad);
+  const skyMid = el("stop", { offset: "58%" }, skyGrad);
+  const skyLow = el("stop", { offset: "100%" }, skyGrad);
+  const sunGlow = el("radialGradient", { id: "sunGlow", cx: "50%", cy: "50%", r: "50%" }, defs);
+  const sunCoreStop = el("stop", { offset: "0%" }, sunGlow);
+  const sunMidStop = el("stop", { offset: "45%" }, sunGlow);
+  const sunEdgeStop = el("stop", { offset: "100%", "stop-opacity": "0" }, sunGlow);
+
+  const skyRect = el("rect", { width: W, height: H }, svg);
+  const sun = el("circle", {}, svg);
+  const stars = el("g", {}, svg);
+  const starDots = [];
+  for (let i = 0; i < 42; i++) {
+    const dot = el("circle", {
+      cx: (i * 97) % W,
+      cy: 18 + ((i * 53) % 220),
+      r: i % 5 === 0 ? 1.7 : 1.1,
+      fill: "#fff8ea"
+    }, stars);
+    starDots.push(dot);
+  }
+
+  const cloudLayer = el("g", {}, svg);
+  const clouds = [];
+  const cloudSeeds = [
+    [80, 86, 1.15, 0.06],
+    [340, 54, 0.8, 0.1],
+    [620, 110, 1.35, 0.05],
+    [900, 70, 0.95, 0.09],
+    [1140, 130, 1.1, 0.07],
+    [1420, 48, 0.7, 0.12]
+  ];
+  cloudSeeds.forEach(function (seed) {
+    const g = el("g", {}, cloudLayer);
+    const s = seed[2];
+    el("ellipse", { cx: 0, cy: 0, rx: 46 * s, ry: 18 * s }, g);
+    el("ellipse", { cx: 32 * s, cy: 6 * s, rx: 30 * s, ry: 15 * s }, g);
+    el("ellipse", { cx: -30 * s, cy: 8 * s, rx: 26 * s, ry: 13 * s }, g);
+    clouds.push({ g: g, x: seed[0], y: seed[1], depth: seed[3] });
+  });
+
+  const hillFar = el("g", {}, svg);
+  const hillNear = el("g", {}, svg);
+  function hillPath(y, amp) {
+    let d = "M 0 " + y;
+    for (let x = 0; x <= W; x += 80) {
+      const crest = y - amp * (0.45 + 0.55 * Math.sin(x * 0.017 + amp));
+      d += " Q " + (x + 40) + " " + (crest - amp * 0.35) + " " + (x + 80) + " " + y;
+    }
+    d += " L " + (W + 80) + " 470 L 0 470 Z";
+    return d;
+  }
+  const hillFarPath = el("path", { d: hillPath(400, 34) }, hillFar);
+  const hillFarPath2 = el("path", { d: hillPath(400, 34) }, hillFar);
+  hillFarPath2.setAttribute("transform", "translate(1280 0)");
+  const hillNearPath = el("path", { d: hillPath(436, 26) }, hillNear);
+  const hillNearPath2 = el("path", { d: hillPath(436, 26) }, hillNear);
+  hillNearPath2.setAttribute("transform", "translate(1280 0)");
+
+  const seaFar = el("rect", { x: 0, y: 430, width: W, height: 150 }, svg);
+  const waveBack = el("path", {}, svg);
+  const waveMid = el("path", {}, svg);
+
+  const lighthouse = el("g", {}, svg);
+  el("rect", { x: -16, y: 20, width: 32, height: 78, rx: 2, fill: "#f4efe6" }, lighthouse);
+  el("polygon", { points: "-20,20 20,20 14,4 -14,4", fill: "#c4554a" }, lighthouse);
+  el("rect", { x: -18, y: 0, width: 36, height: 16, fill: "#f7f1e6" }, lighthouse);
+  el("polygon", { points: "-22,0 22,0 0,-18", fill: "#c4554a" }, lighthouse);
+  el("rect", { x: -7, y: 36, width: 14, height: 10, rx: 1, fill: "#24345e" }, lighthouse);
+  el("rect", { x: -7, y: 56, width: 14, height: 10, rx: 1, fill: "#24345e" }, lighthouse);
+  const beam = el("polygon", { points: "18,8 150,28 150,-16", fill: "#ffe7a3", opacity: "0" }, lighthouse);
+
+  const boat = el("g", {}, svg);
+  el("path", { d: "M -34 8 Q 0 28 40 6 L 28 -2 L -26 -2 Z", fill: "#f4efe6" }, boat);
+  el("path", { d: "M 0 -2 L 0 -48", stroke: "#6b442c", "stroke-width": "2" }, boat);
+  el("path", { d: "M 2 -46 L 2 -8 L 28 -8 Z", fill: "#fffaf3" }, boat);
+  el("path", { d: "M -2 -40 L -2 -10 L -20 -10 Z", fill: "#e7f2f4" }, boat);
+
+  const gullLayer = el("g", {}, svg);
+  const gulls = [];
+  [[200, 150, 1, 0.18], [560, 190, 0.8, 0.28], [980, 120, 1.15, 0.14], [760, 240, 0.65, 0.34]].forEach(function (g) {
+    const node = el("g", {}, gullLayer);
+    const left = el("path", { fill: "none", stroke: "#f7f4ee", "stroke-width": 2.4, "stroke-linecap": "round" }, node);
+    const right = el("path", { fill: "none", stroke: "#f7f4ee", "stroke-width": 2.4, "stroke-linecap": "round" }, node);
+    gulls.push({ node: node, x: g[0], y: g[1], s: g[2], depth: g[3], left: left, right: right, phase: g[0] });
+  });
+
+  const pilingLayer = el("g", {}, svg);
+  const PILING_GAP = 170;
+  const PILING_COUNT = Math.ceil(W / PILING_GAP) + 2;
+  const pilings = [];
+  for (let i = 0; i < PILING_COUNT; i++) {
+    const g = el("g", {}, pilingLayer);
+    const wood = el("rect", { x: -8, y: 0, width: 16, height: 168, rx: 2 }, g);
+    const wet = el("rect", { x: -8, y: 108, width: 16, height: 60 }, g);
+    pilings.push({ g: g, wood: wood, wet: wet });
+  }
+
+  const deck = el("rect", { x: 0, y: DECK_Y, width: W, height: 36 }, svg);
+  const deckEdge = el("rect", { x: 0, y: DECK_Y + 36, width: W, height: 16 }, svg);
+  const plankLayer = el("g", {}, svg);
+  const PLANK_GAP = 34;
+  const PLANK_COUNT = Math.ceil(W / PLANK_GAP) + 2;
+  const planks = [];
+  for (let i = 0; i < PLANK_COUNT; i++) {
+    planks.push(el("line", { y1: DECK_Y, y2: DECK_Y + 52, "stroke-width": 2 }, plankLayer));
+  }
+  el("line", { x1: 0, y1: DECK_Y, x2: W, y2: DECK_Y, stroke: "#fff", "stroke-opacity": "0.35", "stroke-width": 2 }, svg);
+
+  const waveFront = el("path", {}, svg);
+  const foamFront = el("path", { fill: "none", "stroke-width": 3, "stroke-linecap": "round" }, svg);
+
+  const fishLayer = el("g", {}, svg);
+  const fishes = [];
+  for (let i = 0; i < 4; i++) {
+    const g = el("g", { opacity: 0 }, fishLayer);
+    el("ellipse", { cx: 0, cy: 0, rx: 11, ry: 4.5, fill: "#d5e4ea" }, g);
+    el("polygon", { points: "-10,-1 -18,-7 -16,0 -18,7", fill: "#b7cdd6" }, g);
+    el("circle", { cx: 6, cy: -1, r: 1, fill: "#1c2e38" }, g);
+    fishes.push({ g: g, active: false });
+  }
+
+  const glints = [];
+  for (let i = 0; i < 4; i++) {
+    glints.push(el("ellipse", { ry: 2.2, fill: "#fff6d8" }, svg));
+  }
+
+  const rider = el("g", {}, svg);
+  const shadow = el("ellipse", { cx: 0, cy: 8, rx: 86, ry: 10, fill: "#000", opacity: 0.16 }, rider);
+
+  const bike = el("g", {}, rider);
+  function wheel(center) {
+    const g = el("g", {}, bike);
+    el("circle", {
+      cx: center.x, cy: center.y, r: R - 5,
+      fill: "none", stroke: "#243038", "stroke-width": 9
+    }, g);
+    const spokes = el("g", {}, g);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI;
+      el("line", {
+        x1: center.x + Math.cos(a) * 8,
+        y1: center.y + Math.sin(a) * 8,
+        x2: center.x + Math.cos(a) * (R - 12),
+        y2: center.y + Math.sin(a) * (R - 12),
+        stroke: "#e7eef2", "stroke-width": 2, "stroke-linecap": "round"
+      }, spokes);
+    }
+    el("circle", {
+      cx: center.x, cy: center.y, r: R - 12,
+      fill: "none", stroke: "#c5d0d4", "stroke-width": 3
+    }, g);
+    el("path", {
+      d: "M " + (center.x - 38) + " " + (center.y - 16) +
+        " A 46 46 0 0 1 " + (center.x + 38) + " " + (center.y - 16),
+      fill: "none", stroke: "#1f7a6b", "stroke-width": 5, "stroke-linecap": "round"
+    }, g);
+    el("circle", { cx: center.x, cy: center.y, r: 6, fill: "#1f7a6b" }, g);
+    return { g: g, spokes: spokes, center: center };
+  }
+  const rearWheel = wheel(BIKE.rear);
+  const frontWheel = wheel(BIKE.front);
+
+  const frameColor = "#1f7a6b";
+  function tube(x1, y1, x2, y2, width) {
+    return el("line", {
+      x1: x1, y1: y1, x2: x2, y2: y2,
+      stroke: frameColor, "stroke-width": width || 7, "stroke-linecap": "round"
+    }, bike);
+  }
+  tube(BIKE.rear.x, BIKE.rear.y, BIKE.bb.x, BIKE.bb.y);
+  tube(BIKE.rear.x, BIKE.rear.y, BIKE.seat.x, BIKE.seat.y + 6);
+  tube(BIKE.bb.x, BIKE.bb.y, BIKE.seat.x, BIKE.seat.y);
+  tube(BIKE.bb.x, BIKE.bb.y, BIKE.head.x, BIKE.head.y);
+  tube(BIKE.seat.x, BIKE.seat.y, BIKE.head.x, BIKE.head.y);
+  tube(BIKE.head.x, BIKE.head.y, BIKE.front.x, BIKE.front.y, 6);
+  tube(BIKE.head.x, BIKE.head.y, BIKE.grip.x - 6, BIKE.grip.y + 4, 6);
+  tube(BIKE.grip.x - 16, BIKE.grip.y, BIKE.grip.x + 8, BIKE.grip.y - 2, 6);
+  el("line", {
+    x1: BIKE.rear.x + 16, y1: BIKE.rear.y - 9,
+    x2: BIKE.bb.x - 16, y2: BIKE.bb.y - 10,
+    stroke: "#2c3338", "stroke-width": 2
+  }, bike);
+  el("line", {
+    x1: BIKE.rear.x + 16, y1: BIKE.rear.y + 9,
+    x2: BIKE.bb.x - 16, y2: BIKE.bb.y + 10,
+    stroke: "#2c3338", "stroke-width": 2
+  }, bike);
+
+  const chainring = el("g", {}, bike);
+  el("circle", { cx: BIKE.bb.x, cy: BIKE.bb.y, r: 15, fill: "none", stroke: "#243038", "stroke-width": 4 }, chainring);
+  el("circle", { cx: BIKE.bb.x + 9, cy: BIKE.bb.y, r: 2.2, fill: "#f4efe6" }, chainring);
+  el("circle", { cx: BIKE.rear.x, cy: BIKE.rear.y, r: 8, fill: "none", stroke: "#243038", "stroke-width": 3 }, bike);
+
+  el("ellipse", {
+    cx: BIKE.seat.x, cy: BIKE.seat.y, rx: 18, ry: 5.5,
+    fill: "#6b3a28", transform: "rotate(-12 " + BIKE.seat.x + " " + BIKE.seat.y + ")"
+  }, bike);
+
+  const bottle = el("g", {}, bike);
+  el("rect", { x: 18, y: -118, width: 12, height: 28, rx: 4, fill: "#ef6f4a" }, bottle);
+  el("rect", { x: 20, y: -124, width: 8, height: 8, rx: 2, fill: "#243038" }, bottle);
+
+  function makeLeg() {
+    const g = el("g", {}, rider);
+    const crank = el("line", { stroke: "#243038", "stroke-width": 5, "stroke-linecap": "round" }, g);
+    const thigh = el("line", { stroke: "#e07a5f", "stroke-width": 8, "stroke-linecap": "round" }, g);
+    const shin = el("line", { stroke: "#e8896a", "stroke-width": 6.5, "stroke-linecap": "round" }, g);
+    const pedal = el("rect", {
+      x: -9, y: -4.5, width: 24, height: 9, rx: 2,
+      fill: "#f4e2c4", stroke: "#243038", "stroke-width": 1.6
+    }, g);
+    const foot = el("path", {
+      d: "M 0 2 L 20 -9 L 23 -3 L 19 1 L 25 6 L 18 8 L 21 15 L 0 6 Z",
+      fill: "#e8896a"
+    }, g);
+    return { g: g, crank: crank, thigh: thigh, shin: shin, pedal: pedal, foot: foot };
+  }
+  const farLeg = makeLeg();
+  farLeg.thigh.setAttribute("stroke-width", "7");
+  farLeg.g.setAttribute("opacity", "0.92");
+
+  const bird = el("g", {}, rider);
+  const tail = el("g", {}, bird);
+  [-24, -6, 12].forEach(function (rot, i) {
+    el("ellipse", {
+      cx: BIRD.body.x - 50, cy: BIRD.body.y + 8,
+      rx: 20, ry: 7,
+      fill: i === 1 ? "#efe6da" : "#f7f3ec",
+      transform: "rotate(" + rot + " " + (BIRD.body.x - 40) + " " + (BIRD.body.y + 6) + ")"
+    }, tail);
+  });
+
+  const farWing = el("path", {
+    d: "M -8 -186 C 28 -206 78 -176 112 -158 C 86 -150 40 -156 8 -168 C -4 -174 -8 -180 -8 -186 Z",
+    fill: "#e7dfd2"
+  }, bird);
+
+  el("ellipse", {
+    cx: BIRD.body.x, cy: BIRD.body.y, rx: 56, ry: 42, fill: "#fffaf3"
+  }, bird);
+  el("ellipse", {
+    cx: BIRD.body.x + 8, cy: BIRD.body.y + 16, rx: 36, ry: 18, fill: "#f0e4d4"
+  }, bird);
+
+  const scarf = el("path", {
+    fill: "none", stroke: "#e25b45", "stroke-width": 7, "stroke-linecap": "round"
+  }, bird);
+
+  const neckShadow = el("path", {
+    fill: "none", stroke: "#e6d5c4", "stroke-width": 26, "stroke-linecap": "round"
+  }, bird);
+  const neck = el("path", {
+    fill: "none", stroke: "#fffaf3", "stroke-width": 24, "stroke-linecap": "round"
+  }, bird);
+
+  const nearWing = el("g", {}, bird);
+  el("path", {
+    d: "M 6 0 C -8 14 -46 26 -78 8 C -84 -4 -52 -12 -18 -4 C -4 -1 2 -4 6 0 Z",
+    fill: "#f7f3ec"
+  }, nearWing);
+  el("path", {
+    d: "M -42 6 C -60 14 -80 10 -84 2 C -66 0 -50 2 -42 6 Z",
+    fill: "#3e4c55"
+  }, nearWing);
+  el("path", {
+    d: "M -36 -1 C -56 2 -78 -4 -82 -10 C -60 -8 -44 -4 -36 -1 Z",
+    fill: "#2f3c44"
+  }, nearWing);
+
+  const head = el("g", {}, bird);
+  el("ellipse", { cx: -16, cy: -6, rx: 8, ry: 14, fill: "#fffaf3", transform: "rotate(-30 -16 -6)" }, head);
+  el("ellipse", { cx: -20, cy: 2, rx: 6, ry: 12, fill: "#f4efe6", transform: "rotate(-8 -20 2)" }, head);
+  el("ellipse", { cx: -14, cy: 8, rx: 5, ry: 11, fill: "#fffaf3", transform: "rotate(16 -14 8)" }, head);
+  el("ellipse", { cx: -2, cy: 2, rx: 22, ry: 19, fill: "#fffaf3" }, head);
+  el("circle", { cx: 8, cy: -1, r: 8.5, fill: "#f0c14a" }, head);
+  el("circle", { cx: 8, cy: -1, r: 6.2, fill: "#f7f4ee" }, head);
+  el("circle", { cx: 8.4, cy: -1, r: 3.1, fill: "#1c1915" }, head);
+  el("circle", { cx: 9.6, cy: -2.4, r: 1.15, fill: "#fff" }, head);
+  const eyelid = el("ellipse", { cx: 8, cy: -1, rx: 7, ry: 0, fill: "#fffaf3" }, head);
+
+  const upperBill = el("path", {
+    d: "M 10 -6 C 48 -14 96 -12 136 -4 C 150 -2 154 5 144 9 C 132 13 124 8 118 6 C 78 1 40 4 12 8 C 4 4 4 -2 10 -6 Z",
+    fill: "#f2b134"
+  }, head);
+  el("path", {
+    d: "M 24 -4 C 46 -8 70 -7 92 -4",
+    fill: "none", stroke: "#ffe29a", "stroke-width": 3, "stroke-linecap": "round", opacity: "0.85"
+  }, head);
+  el("path", {
+    d: "M 28 -1 L 40 1",
+    fill: "none", stroke: "#c4842a", "stroke-width": 1.6, "stroke-linecap": "round"
+  }, head);
+  el("ellipse", { cx: 142, cy: 4, rx: 8, ry: 4.5, fill: "#ffe08a" }, head);
+
+  const pouchWrap = el("g", {}, head);
+  el("path", {
+    d: "M 12 8 C 46 14 104 16 126 8 C 140 20 134 50 102 62 C 66 76 30 60 14 36 C 6 22 6 12 12 8 Z",
+    fill: "#f08a5d"
+  }, pouchWrap);
+  el("path", {
+    d: "M 28 20 C 60 28 96 26 118 16",
+    fill: "none", stroke: "#ffd0b0", "stroke-width": 3, "stroke-linecap": "round", opacity: "0.7"
+  }, pouchWrap);
+  el("path", {
+    d: "M 36 34 C 62 44 92 40 112 28",
+    fill: "none", stroke: "#d86b42", "stroke-width": 2, "stroke-linecap": "round", opacity: "0.55"
+  }, pouchWrap);
+  const mouth = el("path", {
+    d: "M 14 8 C 52 16 100 16 128 7",
+    fill: "none", stroke: "#c45c32", "stroke-width": 2, "stroke-linecap": "round"
+  }, head);
+
+  const pouchFish = el("g", {}, head);
+  el("ellipse", { cx: 0, cy: 0, rx: 12, ry: 5, fill: "#9fd0c8" }, pouchFish);
+  el("polygon", { points: "-8,0 -20,-7 -16,0 -20,7", fill: "#7fb8b0" }, pouchFish);
+  el("circle", { cx: 6, cy: -1, r: 1.1, fill: "#1c2e38" }, pouchFish);
+
+  const nearLeg = makeLeg();
+
+  const bellGroup = el("g", {}, rider);
+  el("circle", { cx: BIKE.grip.x - 4, cy: BIKE.grip.y - 12, r: 8, fill: "#f0c14a" }, bellGroup);
+  el("circle", { cx: BIKE.grip.x - 4, cy: BIKE.grip.y - 12, r: 3.2, fill: "#fff1c2" }, bellGroup);
+  el("rect", { x: BIKE.grip.x - 6, y: BIKE.grip.y - 5, width: 4, height: 8, rx: 1, fill: "#c9842a" }, bellGroup);
+  const soundA = el("path", {
+    d: "M 8 -18 A 14 14 0 0 1 18 -6",
+    fill: "none", stroke: "#f0c14a", "stroke-width": 2, "stroke-linecap": "round", opacity: 0,
+    transform: "translate(" + (BIKE.grip.x - 4) + " " + (BIKE.grip.y - 12) + ")"
+  }, bellGroup);
+  const soundB = el("path", {
+    d: "M 12 -24 A 22 22 0 0 1 28 -6",
+    fill: "none", stroke: "#f0c14a", "stroke-width": 2, "stroke-linecap": "round", opacity: 0,
+    transform: "translate(" + (BIKE.grip.x - 4) + " " + (BIKE.grip.y - 12) + ")"
+  }, bellGroup);
+
+  const notes = el("g", {}, svg);
+  const notePool = [];
+  for (let i = 0; i < 4; i++) {
+    notePool.push(el("text", {
+      "font-size": "22", fill: "#1f7a6b", "font-family": "WenQuanYi Micro Hei, sans-serif", opacity: 0
+    }, notes));
+  }
+
+  const speedLines = [];
+  const speedLayer = el("g", {}, rider);
+  for (let i = 0; i < 5; i++) {
+    speedLines.push(el("line", {
+      stroke: "#fff", "stroke-width": 2, "stroke-linecap": "round", opacity: 0
+    }, speedLayer));
+  }
+
+  let distance = 0;
+  let speed = 1;
+  let running = true;
+  let paletteKey = "afternoon";
+  let fromPalette = PALETTES.afternoon;
+  let toPalette = PALETTES.afternoon;
+  let mix = 1;
+  let bellUntil = 0;
+  let noteCursor = 0;
+  const activeNotes = [];
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) running = false;
+
+  const speedInput = document.getElementById("speed");
+  const mood = document.getElementById("mood");
+  const meters = document.getElementById("meters");
+  const pauseBtn = document.getElementById("pause");
+  const bellBtn = document.getElementById("bell");
+  const live = document.getElementById("live");
+  const titleEl = document.querySelector(".title");
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mixHex(a, b, t) {
+    const A = hexToRgb(a);
+    const B = hexToRgb(b);
+    const c = A.map(function (v, i) { return Math.round(v + (B[i] - v) * t); });
+    return "#" + c.map(function (v) { return v.toString(16).padStart(2, "0"); }).join("");
+  }
+  function mixNum(a, b, t) { return a + (b - a) * t; }
+  function currentPalette() {
+    const keys = Object.keys(PALETTES.afternoon);
+    const out = {};
+    keys.forEach(function (k) {
+      const a = fromPalette[k];
+      const b = toPalette[k];
+      out[k] = typeof a === "number" ? mixNum(a, b, mix) : mixHex(a, b, mix);
+    });
+    return out;
+  }
+  function wrap(v, span) { return ((v % span) + span) % span; }
+  function wavePath(base, amp, freq, phase, depth, closeY) {
+    let d = "M 0 " + (base + Math.sin(phase) * amp).toFixed(1);
+    for (let x = 20; x <= W; x += 20) {
+      const y = base + Math.sin(x * freq + phase) * amp + Math.sin(x * freq * 0.5 + phase * 1.3) * (amp * 0.35);
+      d += " L " + x + " " + y.toFixed(1);
+    }
+    d += " L " + W + " " + closeY + " L 0 " + closeY + " Z";
+    return d;
+  }
+  function solveKnee(hip, foot) {
+    let dx = foot.x - hip.x;
+    let dy = foot.y - hip.y;
+    let dist = Math.hypot(dx, dy) || 0.001;
+    const max = L1 + L2 - 1;
+    const min = Math.abs(L1 - L2) + 1;
+    dist = clamp(dist, min, max);
+    const a = (L1 * L1 - L2 * L2 + dist * dist) / (2 * dist);
+    const h = Math.sqrt(Math.max(0, L1 * L1 - a * a));
+    const ux = (foot.x - hip.x) / (Math.hypot(foot.x - hip.x, foot.y - hip.y) || 1);
+    const uy = (foot.y - hip.y) / (Math.hypot(foot.x - hip.x, foot.y - hip.y) || 1);
+    const px = hip.x + ux * a;
+    const py = hip.y + uy * a;
+    const kA = { x: px - uy * h, y: py + ux * h };
+    const kB = { x: px + uy * h, y: py - ux * h };
+    return kA.y < kB.y ? kA : kB;
+  }
+  function placeLeg(leg, hip, foot, angle) {
+    const knee = solveKnee(hip, foot);
+    leg.crank.setAttribute("x1", BIKE.bb.x);
+    leg.crank.setAttribute("y1", BIKE.bb.y);
+    leg.crank.setAttribute("x2", foot.x);
+    leg.crank.setAttribute("y2", foot.y);
+    leg.thigh.setAttribute("x1", hip.x);
+    leg.thigh.setAttribute("y1", hip.y);
+    leg.thigh.setAttribute("x2", knee.x);
+    leg.thigh.setAttribute("y2", knee.y);
+    leg.shin.setAttribute("x1", knee.x);
+    leg.shin.setAttribute("y1", knee.y);
+    leg.shin.setAttribute("x2", foot.x);
+    leg.shin.setAttribute("y2", foot.y);
+    const deg = Math.sin(angle) * 24;
+    const footXform = "translate(" + foot.x + " " + foot.y + ") rotate(" + deg + ")";
+    leg.foot.setAttribute("transform", footXform);
+    leg.pedal.setAttribute("transform", "translate(" + foot.x + " " + foot.y + ") rotate(" + (deg * 0.45) + ")");
+  }
+  function moodText(v) {
+    if (v < 0.05) return "停下歇脚";
+    if (v < 0.6) return "缓缓滑行";
+    if (v < 1.25) return "轻松巡航";
+    if (v < 1.9) return "加快蹬踏";
+    return "迎风冲刺";
+  }
+  function applyPalette(p) {
+    skyTop.setAttribute("stop-color", p.skyTop);
+    skyMid.setAttribute("stop-color", p.skyMid);
+    skyLow.setAttribute("stop-color", p.skyLow);
+    skyRect.setAttribute("fill", "url(#skyGrad)");
+    sunCoreStop.setAttribute("stop-color", p.sunCore);
+    sunMidStop.setAttribute("stop-color", p.sun);
+    sunEdgeStop.setAttribute("stop-color", p.sun);
+    sun.setAttribute("fill", "url(#sunGlow)");
+    hillFarPath.setAttribute("fill", p.hillFar);
+    hillFarPath2.setAttribute("fill", p.hillFar);
+    hillNearPath.setAttribute("fill", p.hillNear);
+    hillNearPath2.setAttribute("fill", p.hillNear);
+    seaFar.setAttribute("fill", p.seaFar);
+    deck.setAttribute("fill", p.deck);
+    deckEdge.setAttribute("fill", p.deckEdge);
+    planks.forEach(function (line) { line.setAttribute("stroke", p.seam); });
+    pilings.forEach(function (item) {
+      item.wood.setAttribute("fill", p.piling);
+      item.wet.setAttribute("fill", p.pilingWet);
+    });
+    clouds.forEach(function (cloud) {
+      cloud.g.querySelectorAll("ellipse").forEach(function (e) {
+        e.setAttribute("fill", p.cloud);
+      });
+      cloud.g.setAttribute("opacity", p.cloudOpacity);
+    });
+    stars.setAttribute("opacity", p.star);
+    waveBack.setAttribute("fill", p.sea);
+    waveMid.setAttribute("fill", p.seaDeep);
+    waveFront.setAttribute("fill", p.seaDeep);
+    foamFront.setAttribute("stroke", p.foam);
+    beam.setAttribute("opacity", p.star > 0.2 ? 0.28 : 0);
+    document.body.style.background = p.page;
+    titleEl.style.color = p.title;
+    document.documentElement.style.setProperty("--title", p.title);
+  }
+
+  function ring() {
+    bellUntil = performance.now() + 700;
+    const note = notePool[noteCursor % notePool.length];
+    noteCursor += 1;
+    activeNotes.push({ node: note, born: performance.now(), x: 620 + Math.random() * 30, y: 250 });
+    note.textContent = "叮";
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!ring.ctx) ring.ctx = new Ctx();
+    const ctx = ring.ctx;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime;
+    function tone(freq, type, gain, dur) {
+      const osc = ctx.createOscillator();
+      const amp = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      amp.gain.setValueAtTime(0.0001, t);
+      amp.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+      amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(amp);
+      amp.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    }
+    tone(1568, "sine", 0.12, 0.55);
+    tone(2349, "triangle", 0.04, 0.32);
+    live.textContent = "车铃响了一声";
+  }
+
+  function setRunning(next) {
+    running = next;
+    pauseBtn.textContent = running ? "暂停" : "继续";
+    pauseBtn.setAttribute("aria-pressed", running ? "false" : "true");
+    live.textContent = running ? "继续骑行" : "动画已暂停";
+  }
+
+  speedInput.addEventListener("input", function () {
+    speed = Number(speedInput.value);
+    mood.textContent = moodText(speed);
+  });
+  pauseBtn.addEventListener("click", function () { setRunning(!running); });
+  bellBtn.addEventListener("click", ring);
+  document.querySelectorAll("[data-time]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      fromPalette = currentPalette();
+      paletteKey = btn.getAttribute("data-time");
+      toPalette = PALETTES[paletteKey];
+      mix = 0;
+      document.querySelectorAll("[data-time]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    });
+  });
+  window.addEventListener("keydown", function (event) {
+    if (event.target && event.target.matches && event.target.matches("input, textarea")) return;
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      speed = clamp(speed + 0.15, 0, 2.4);
+      speedInput.value = String(speed);
+      mood.textContent = moodText(speed);
+      event.preventDefault();
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      speed = clamp(speed - 0.15, 0, 2.4);
+      speedInput.value = String(speed);
+      mood.textContent = moodText(speed);
+      event.preventDefault();
+    } else if (event.key === " ") {
+      setRunning(!running);
+      event.preventDefault();
+    } else if (event.key === "b" || event.key === "B") {
+      ring();
+    }
+  });
+
+  if (reduceMotion) setRunning(false);
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(34, now - last);
+    last = now;
+    if (mix < 1) {
+      mix = Math.min(1, mix + dt / 700);
+      applyPalette(currentPalette());
+    }
+    if (running) distance += speed * dt * 0.32;
+
+    const p = currentPalette();
+    const crank = distance / (R * 1.05);
+    const wheelDeg = (distance / R) * (180 / Math.PI);
+    const bob = Math.sin(crank * 2) * 1.7;
+    const bellT = bellUntil > now ? (bellUntil - now) / 700 : 0;
+
+    sun.setAttribute("cx", p.sunX);
+    sun.setAttribute("cy", p.sunY);
+    sun.setAttribute("r", p.sunR * 2.4);
+    glints.forEach(function (glint, i) {
+      const phase = now / 260 + i * 1.4;
+      glint.setAttribute("cx", (p.sunX + Math.sin(phase) * 14).toFixed(1));
+      glint.setAttribute("cy", 462 + i * 24);
+      glint.setAttribute("rx", (16 - i * 2.4 + Math.sin(phase * 1.8) * 5).toFixed(1));
+      glint.setAttribute("opacity", (0.28 - i * 0.05).toFixed(2));
+    });
+
+    hillFar.setAttribute("transform", "translate(" + (-wrap(distance * 0.08, W)) + " 0)");
+    hillNear.setAttribute("transform", "translate(" + (-wrap(distance * 0.16, W)) + " 0)");
+
+    clouds.forEach(function (cloud) {
+      const x = wrap(cloud.x - distance * cloud.depth, 1700) - 160;
+      cloud.g.setAttribute("transform", "translate(" + x.toFixed(1) + " " + cloud.y + ")");
+    });
+
+    const lightX = wrap(1900 - distance * 0.12, 2400) - 300;
+    lighthouse.setAttribute("transform", "translate(" + lightX.toFixed(1) + " 360)");
+    const boatX = wrap(1100 - distance * 0.22, 1900) - 120;
+    const boatY = 470 + Math.sin(now / 700 + boatX) * 3;
+    boat.setAttribute("transform", "translate(" + boatX.toFixed(1) + " " + boatY.toFixed(1) + ")");
+
+    waveBack.setAttribute("d", wavePath(456, 8, 0.02, distance * 0.01, 40, 560));
+    waveMid.setAttribute("d", wavePath(492, 10, 0.028, distance * 0.016 + 1, 50, 600));
+    waveFront.setAttribute("d", wavePath(648, 12, 0.02, distance * 0.02 + 2, 40, H));
+    let foam = "";
+    for (let x = 0; x <= W; x += 16) {
+      const y = 646 + Math.sin(x * 0.02 + distance * 0.02 + 2) * 12;
+      foam += (x === 0 ? "M " : " L ") + x + " " + y.toFixed(1);
+    }
+    foamFront.setAttribute("d", foam);
+
+    const plankShift = wrap(distance, PLANK_GAP);
+    planks.forEach(function (line, i) {
+      const x = i * PLANK_GAP - plankShift;
+      line.setAttribute("x1", x);
+      line.setAttribute("x2", x);
+    });
+    const pileShift = wrap(distance, PILING_GAP);
+    pilings.forEach(function (item, i) {
+      item.g.setAttribute("transform", "translate(" + (i * PILING_GAP - pileShift) + " " + (DECK_Y + 48) + ")");
+    });
+
+    gulls.forEach(function (gull) {
+      const x = wrap(gull.x - distance * gull.depth, 1600) - 80;
+      const y = gull.y + Math.sin(now / 500 + gull.phase) * 8;
+      gull.node.setAttribute("transform", "translate(" + x.toFixed(1) + " " + y.toFixed(1) + ") scale(" + gull.s + ")");
+      const flap = Math.sin(now / 160 + gull.phase) * 10;
+      gull.left.setAttribute("d", "M 0 0 Q -14 " + (-6 - flap) + " -26 " + (2 + flap));
+      gull.right.setAttribute("d", "M 0 0 Q 14 " + (-6 - flap) + " 26 " + (2 + flap));
+    });
+
+    if (running && Math.random() < dt * 0.00055 * (0.4 + speed)) {
+      const spare = fishes.find(function (f) { return !f.active; });
+      if (spare) {
+        spare.active = true;
+        spare.born = now;
+        spare.x = 180 + Math.random() * 940;
+        spare.y = 500 + Math.random() * 40;
+        spare.life = 900 + Math.random() * 400;
+      }
+    }
+    fishes.forEach(function (fish) {
+      if (!fish.active) return;
+      const u = (now - fish.born) / fish.life;
+      if (u >= 1) {
+        fish.active = false;
+        fish.g.setAttribute("opacity", 0);
+        return;
+      }
+      const arc = Math.sin(u * Math.PI);
+      const x = fish.x + u * 40;
+      const y = fish.y - arc * 48;
+      const tilt = Math.cos(u * Math.PI) * -40;
+      fish.g.setAttribute("opacity", arc > 0.08 ? 1 : 0);
+      fish.g.setAttribute("transform", "translate(" + x.toFixed(1) + " " + y.toFixed(1) + ") rotate(" + tilt.toFixed(1) + ")");
+    });
+
+    rider.setAttribute("transform", "translate(470 " + (DECK_Y + bob) + ") scale(1.16)");
+    const lean = speed * 2.3 + Math.sin(crank) * 1.1;
+    bird.setAttribute("transform", "rotate(" + lean.toFixed(2) + " " + BIRD.body.x + " " + (BIRD.body.y + 30) + ")");
+
+    rearWheel.spokes.setAttribute("transform", "rotate(" + wheelDeg.toFixed(2) + " " + BIKE.rear.x + " " + BIKE.rear.y + ")");
+    frontWheel.spokes.setAttribute("transform", "rotate(" + wheelDeg.toFixed(2) + " " + BIKE.front.x + " " + BIKE.front.y + ")");
+    chainring.setAttribute("transform", "rotate(" + (crank * 180 / Math.PI).toFixed(2) + " " + BIKE.bb.x + " " + BIKE.bb.y + ")");
+
+    function pedalAt(angle) {
+      return {
+        x: BIKE.bb.x + Math.cos(angle) * CRANK,
+        y: BIKE.bb.y + Math.sin(angle) * CRANK
+      };
+    }
+    const origin = { x: BIRD.body.x, y: BIRD.body.y + 30 };
+    function leanPoint(pt) {
+      const rad = lean * Math.PI / 180;
+      const c = Math.cos(rad);
+      const s = Math.sin(rad);
+      const dx = pt.x - origin.x;
+      const dy = pt.y - origin.y;
+      return { x: origin.x + dx * c - dy * s, y: origin.y + dx * s + dy * c };
+    }
+    placeLeg(farLeg, leanPoint(BIRD.hipF), pedalAt(crank + Math.PI), crank + Math.PI);
+    placeLeg(nearLeg, leanPoint(BIRD.hipN), pedalAt(crank), crank);
+
+    const hx = BIRD.head.x;
+    const hy = BIRD.head.y;
+    const neckD = "M " + BIRD.neckFrom.x + " " + BIRD.neckFrom.y +
+      " C " + (BIRD.neckFrom.x + 20) + " " + (BIRD.neckFrom.y - 36) +
+      ", " + (hx - 20) + " " + (hy + 36) +
+      ", " + (hx - 8) + " " + (hy + 12);
+    neck.setAttribute("d", neckD);
+    neckShadow.setAttribute("d", neckD);
+    neckShadow.setAttribute("transform", "translate(0 5)");
+
+    const scarfWave = Math.sin(now / 180) * 10 + speed * 4;
+    scarf.setAttribute("d",
+      "M " + (BIRD.neckFrom.x - 6) + " " + (BIRD.neckFrom.y + 6) +
+      " Q " + (BIRD.neckFrom.x - 36) + " " + (BIRD.neckFrom.y + 8 + scarfWave) +
+      ", " + (BIRD.neckFrom.x - 74 - speed * 6) + " " + (BIRD.neckFrom.y + 18 - scarfWave)
+    );
+
+    const flapPhase = now / (speed > 1.5 ? 150 : 280);
+    const lift = Math.pow(Math.max(0, Math.sin(flapPhase)), 1.45);
+    const wingAngle = 8 + lift * 64;
+    nearWing.setAttribute("transform", "translate(" + BIRD.shoulder.x + " " + BIRD.shoulder.y + ") rotate(" + wingAngle.toFixed(2) + ")");
+
+    const breathe = 1 + Math.sin(now / 420) * 0.025 + bellT * 0.12;
+    const pouchDrop = bellT * 14;
+    pouchWrap.setAttribute("transform", "translate(68 36) scale(1 " + breathe.toFixed(3) + ") translate(-68 -36) translate(0 " + pouchDrop.toFixed(2) + ")");
+    const headTilt = Math.sin(now / 900) * 3 - bellT * 8;
+    head.setAttribute("transform", "translate(" + hx + " " + hy + ") rotate(" + headTilt.toFixed(2) + ")");
+
+    const blinkWindow = (now % 3800) / 3800;
+    let blink = 0;
+    if (blinkWindow > 0.94) blink = Math.sin((blinkWindow - 0.94) / 0.06 * Math.PI);
+    eyelid.setAttribute("ry", (blink * 7).toFixed(2));
+
+    const fishWiggle = Math.sin(now / 140) * 16;
+    const fishShow = 18 + bellT * 16;
+    pouchFish.setAttribute("transform", "translate(96 " + fishShow.toFixed(1) + ") rotate(" + fishWiggle.toFixed(1) + ")");
+
+    const bellShake = bellT > 0 ? Math.sin((1 - bellT) * 40) * 10 * bellT : 0;
+    bellGroup.setAttribute("transform", "rotate(" + bellShake.toFixed(2) + " " + (BIKE.grip.x - 4) + " " + (BIKE.grip.y - 8) + ")");
+    soundA.setAttribute("opacity", (bellT * 0.9).toFixed(2));
+    soundB.setAttribute("opacity", (Math.max(0, bellT - 0.2) * 0.8).toFixed(2));
+
+    speedLines.forEach(function (line, i) {
+      const show = clamp((speed - 1.15) / 1.2, 0, 1);
+      const span = 36 + i * 16;
+      const x = -170 - ((distance * 1.4 + i * 47) % 90);
+      const y = -30 - i * 18;
+      line.setAttribute("x1", x);
+      line.setAttribute("y1", y);
+      line.setAttribute("x2", x - span);
+      line.setAttribute("y2", y);
+      line.setAttribute("opacity", (show * (0.25 + i * 0.08)).toFixed(2));
+    });
+    shadow.setAttribute("rx", 86 - Math.abs(bob) * 2);
+    shadow.setAttribute("opacity", 0.14 + (speed > 0 ? 0 : 0));
+
+    for (let i = activeNotes.length - 1; i >= 0; i--) {
+      const note = activeNotes[i];
+      const age = (now - note.born) / 900;
+      if (age >= 1) {
+        note.node.setAttribute("opacity", 0);
+        activeNotes.splice(i, 1);
+        continue;
+      }
+      note.node.setAttribute("x", note.x + age * 16);
+      note.node.setAttribute("y", note.y - age * 48);
+      note.node.setAttribute("opacity", (1 - age).toFixed(2));
+    }
+
+    meters.textContent = "已骑行 " + Math.floor(distance / 90) + " 米";
+    requestAnimationFrame(frame);
+  }
+
+  applyPalette(PALETTES.afternoon);
+  mood.textContent = moodText(speed);
+  if (reduceMotion) {
+    live.textContent = "已按系统设置暂停动画，按继续可播放";
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
